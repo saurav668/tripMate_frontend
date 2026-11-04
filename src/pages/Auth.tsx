@@ -1,24 +1,126 @@
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, Mail, Lock, User, Eye, EyeOff, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useAppDispatch, useAppSelector } from "../app/hooks";
+import { clearAuthError, loginRequest, registerRequest } from "../features/auth/authSlice";
 // import { lovable } from "@/integrations/lovable";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
+  // const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const [email, setEmail] = useState("");
+  const [emailError,setEmailError]=useState<string>("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const {
+  loading,
+  error,
+  registrationSuccess,
+  authCompleted
+} = useAppSelector((state:any) => state.auth);  
+
 //   const { signIn, signUp } = useAuth();
-  const navigate = useNavigate();
+
+const dispatch = useAppDispatch();
+const navigate = useNavigate();
+
+
+useEffect(() => {
+  if (authCompleted) {
+    navigate("/", { replace: true });
+  }
+}, [authCompleted, navigate]);
+
+useEffect(() => {
+  if (registrationSuccess) {
+    toast.success("Account created successfully!");
+
+    setIsLogin(true);
+    setPassword("");
+    dispatch(clearAuthError());
+  }
+}, [registrationSuccess, dispatch]);
+
+// const handleValidate = (value: string) => {
+//   const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+//   if (!regex.test(value)) {
+//     setEmailError("Please enter a valid email");
+//   } else {
+//     setEmailError("");
+//   }
+// };
+
+// const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+//   const value = e.target.value;
+
+//   setEmail(value);
+//   handleValidate(value);
+// };
+
+// const handleBack = () => {
+//   navigate("/");
+// };
+
+const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+
+  dispatch(clearAuthError());
+
+  if (!email.trim() || !password) {
+    toast.error("Please fill in all required fields");
+    return;
+  }
+
+  if (emailError) {
+    return;
+  }
+
+  if (isLogin) {
+    dispatch(
+      loginRequest({
+        email: email.trim(),
+        password,
+      }),
+    );
+  } else {
+    if (!fullName.trim()) {
+      toast.error("Please enter your name");
+      return;
+    }
+
+    dispatch(
+      registerRequest({
+        name: fullName.trim(),
+        email: email.trim(),
+        password,
+      }),
+    );
+  }
+};
+  const handleValidate=(event:string)=>{
+    const regex=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if(!regex.test(event)){
+      setEmailError("Please Enter Valid Email");
+    }else{
+      setEmailError("");
+    }
+  }
+  const handleBack=()=>{
+    // setIsLogin(!isLogin);
+    navigate("/");
+  }
+  const handleChange=(e:any)=>{
+    setEmail(e.target.value);
+    handleValidate(e.target.value);
+  }
 
 //   const handleSubmit = async (e: React.FormEvent) => {
 //     e.preventDefault();
@@ -188,7 +290,7 @@ const Auth = () => {
           </div>
 
           {/* Email Form */}
-          <form  className="space-y-4">
+          <form onSubmit={handleSubmit}  className="space-y-4">
             <AnimatePresence mode="wait">
               {!isLogin && (
                 <motion.div
@@ -217,6 +319,11 @@ const Auth = () => {
             </AnimatePresence>
 
             <div className="space-y-2">
+              {error && (
+                <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                  {error}
+                </div>
+              )}
               <Label htmlFor="email">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -225,10 +332,13 @@ const Auth = () => {
                   type="email"
                   placeholder="you@example.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e)=>handleChange(e)}
                   className="pl-10 h-12"
                   required
                 />
+                {emailError && (
+                  <p className="mt-1 text-sm text-red-500">{emailError}</p>
+                )}
               </div>
             </div>
 
@@ -256,7 +366,7 @@ const Auth = () => {
               </div>
             </div>
 
-            <Button type="submit" className="w-full h-12 text-base font-semibold" disabled={loading}>
+            <Button type="submit" className="w-full h-12 text-base font-semibold" disabled={loading || !!emailError}>
               {loading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : isLogin ? (
@@ -270,7 +380,12 @@ const Auth = () => {
           <p className="text-center text-sm text-muted-foreground">
             {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
             <button
-              onClick={() => setIsLogin(!isLogin)}
+              type="button"
+              onClick={() => {
+                setIsLogin(!isLogin);
+                dispatch(clearAuthError());
+                setPassword("");
+              }}
               className="text-primary font-semibold hover:underline"
             >
               {isLogin ? "Sign up" : "Sign in"}
