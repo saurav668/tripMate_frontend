@@ -8,6 +8,9 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "../contexts/AuthContext";
 import Auth from "./pages/Auth";
+import ProtectedRoute from "./routes/ProtectedRoute";
+import Dashboard from "./pages/Dashboard";
+// import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -21,6 +24,10 @@ const App = () => (
         <Routes>
           <Route path="/auth" element={<Auth/>}/>
           <Route path="/" element={<Index />} />
+             <Route element={<ProtectedRoute />}>
+      <Route path="/dashboard" element={<Dashboard />} />
+      {/* <Route path="/profile" element={<Profile />} /> */}
+    </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

@@ -34,7 +34,7 @@ const navigate = useNavigate();
 
 useEffect(() => {
   if (authCompleted) {
-    navigate("/", { replace: true });
+    navigate("/dashboard", { replace: true });
   }
 }, [authCompleted, navigate]);
 
